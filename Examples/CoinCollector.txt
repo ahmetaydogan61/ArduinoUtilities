@@ -1,0 +1,133 @@
+#include <LiquidCrystal.h>
+#include "FasterLib.h"
+#include "InputLib.h"
+#include "UtilsLib.h"
+using namespace Input;
+
+const int rs = 9, en = 8, d4 = 7, d5 = 6, d6 = 5, d7 = 4;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+char coins [32];
+int playerX = 0;
+int playerY = 1;
+
+byte PlayerChar[8] = 
+{
+  0b00000,
+  0b01110,
+  0b11111,
+  0b11111,
+  0b01110,
+  0b00100,
+  0b01110,
+  0b10001
+};
+
+byte CoinChar[8] =
+{
+  0b00000,
+  0b01110,
+  0b10001,
+  0b10101,
+  0b10101,
+  0b10001,
+  0b01110,
+  0b00000
+};
+
+#define Place(x) lcd.write((byte) x)
+#define Player() lcd.write((byte) 0)
+
+struct BoolBits // 1 byte data
+{
+  unsigned char bit0 : 1;
+  unsigned char bit1 : 1;
+  unsigned char bit2 : 1;
+  unsigned char bit3 : 1;
+  unsigned char bit4 : 1;
+  unsigned char bit5 : 1;
+  unsigned char bit6 : 1;
+  unsigned char bit7 : 1;
+} bools;
+
+#define playerUp bools.bit0
+#define gameWon bools.bit1
+#define coinsLeft bools.bit2
+
+void GameLoop()
+{
+  if (KeyPressed(2))
+  {
+    playerUp = !playerUp;
+    if (playerUp)
+      playerY = 0;
+    else
+      playerY = 1;
+  }
+
+  if (KeyPressed(1))
+    playerX++;
+
+  if (KeyPressed(0))
+    playerX--;
+
+  playerX = Utils::Maths::Clamp(playerX, 0, 15);
+  
+  coins[playerX + (playerY * 16)] = 1;
+  coinsLeft = 0;
+
+  for (int y = 0; y < 2; y++)
+    for (int x = 0; x < 16; x++)
+    {
+      lcd.setCursor(x, y);
+      if (x == playerX && y == playerY)
+        Player();
+      else if (!coins[x + (y * 16)])
+      {
+        Place(1);
+        coinsLeft = 1;
+      }
+      else
+        lcd.print(' ');
+    }
+  if (!coinsLeft)
+  {
+    gameWon = 1;
+    lcd.clear();
+    lcd.setCursor(4, 0);
+    lcd.print("You Win!");
+    lcd.setCursor(0, 1);
+    lcd.print("Btn1 to Restart");
+  }
+}
+
+void setup()
+{
+  lcd.begin(16, 2);
+  lcd.createChar(0, PlayerChar);
+  lcd.createChar(1, CoinChar);
+  Init();
+}
+
+void loop()
+{
+  Utils::Time::TimerBegin();
+
+  if (!gameWon)
+    GameLoop();
+  else
+  {
+    if (KeyPressed(0))
+    {
+      for (int i = 0; i < 32; i++)
+        coins[i] = 0;
+      playerX = 0;
+      playerY = 1;
+      playerUp = 0;
+      gameWon = 0;
+    }
+  }
+
+  Update();
+  Events();
+}

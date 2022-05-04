@@ -1,0 +1,117 @@
+#include <LiquidCrystal.h>
+#include "FasterLib.h"
+#include "InputLib.h"
+#include "UtilsLib.h"
+using namespace Input;
+
+#define deltaTime 0.033f
+
+const int rs = 9, en = 8, d4 = 7, d5 = 6, d6 = 5, d7 = 4;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+byte PlayerChar[8] = 
+{
+  0b00000,
+  0b11100,
+  0b10100,
+  0b11111,
+  0b01111,
+  0b01110,
+  0b11111,
+  0b00000
+};
+
+byte BulletChar[8] =
+{
+  0b00000,
+  0b00000,
+  0b00000,
+  0b11111,
+  0b00000,
+  0b00000,
+  0b00000,
+  0b00000
+};
+
+#define Place(x) lcd.write((byte) x)
+#define Player() lcd.write((byte) 0)
+
+struct BoolBits // 1 byte data
+{
+  unsigned char bit0 : 1;
+  unsigned char bit1 : 1;
+  unsigned char bit2 : 1;
+  unsigned char bit3 : 1;
+  unsigned char bit4 : 1;
+  unsigned char bit5 : 1;
+  unsigned char bit6 : 1;
+  unsigned char bit7 : 1;
+} bools;
+
+#define bullet bools.bit0
+#define playerY bools.bit1
+#define gameWon bools.bit2
+int bulletX = 0;
+int bulletY = 0;
+float bulletTime = 0;
+float bulletSpeed = 0.05f;
+
+void GameLoop()
+{
+  if (KeyPressed(0))
+    playerY = 0;
+
+  if (KeyPressed(1))
+    playerY = 1;
+
+  if (KeyPressed(2) && !bullet)
+  {
+    bullet = 1;
+    bulletX = 1;
+    bulletY = playerY;
+    bulletTime = bulletSpeed;
+  }
+
+  if (bullet)
+  {
+    bulletTime -= deltaTime;
+    if (bulletTime <= 0.0f)
+    {
+      bulletX++;
+      bulletTime = bulletSpeed;
+    }
+    if (bulletX > 15)
+      bullet = 0;
+  }
+  
+  for (int y = 0; y < 2; y++)
+    for (int x = 0; x < 16; x++)
+    {
+      lcd.setCursor(x, y);
+      if (y == playerY && x == 0)
+        Player();
+      else if (bullet && bulletX == x && bulletY == y)
+      {
+        Place(1);
+      }
+      else
+        lcd.print(' ');
+    }
+}
+
+void setup()
+{
+  lcd.begin(16, 2);
+  lcd.createChar(0, PlayerChar);
+  lcd.createChar(1, BulletChar);
+  Init();
+}
+
+void loop()
+{
+  if (!gameWon)
+    GameLoop();
+
+  Update();
+  Events();
+}
