@@ -50,7 +50,7 @@
 /*Example Code
 int main()
 {
-  TRISC(0, 0); //Makes the PD2 pin 'Input';
+  TRISC(0, 0); //Makes the PC0 pin 'Input';
   TRISD(3, 1); //Makes the PD3 pin 'Output';
   while(true)
   {
